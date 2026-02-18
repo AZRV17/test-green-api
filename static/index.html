@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green-API Test Task</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { padding: 20px; background-color: #f4f4f4; height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+            height: 90vh;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            text-align: left;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #e2e6ea; }
+
+        .output {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .output label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #response-field {
+            width: 100%;
+            height: 100%;
+            resize: none;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #fff;
+            color: #333;
+        }
+
+        .spacer { height: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <div class="input-group">
+            <input type="text" id="idInstance" placeholder="idInstance">
+            <input type="text" id="apiTokenInstance" placeholder="ApiTokenInstance">
+        </div>
+
+        <div class="spacer"></div>
+
+        <button onclick="getSettings()">getSettings</button>
+
+        <button onclick="getStateInstance()">getStateInstance</button>
+
+        <div class="spacer"></div>
+
+        <div class="input-group">
+            <input type="text" id="chatIdMessage" placeholder="chatIdMessage">
+            <input type="text" id="message" placeholder="Hello World!">
+            <button onclick="sendMessage()">sendMessage</button>
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="input-group">
+            <input type="text" id="chatIdFile" placeholder="chatIdFile">
+            <input type="text" id="urlFile" placeholder="urlFile">
+            <button onclick="sendFileByUrl()">sendFileByUrl</button>
+        </div>
+    </div>
+
+    <div class="output">
+        <label>Ответ:</label>
+        <textarea id="response-field" readonly></textarea>
+    </div>
+</div>
+
+<script>
+    function getBaseUrl() {
+        const id = document.getElementById('idInstance').value;
+        const token = document.getElementById('apiTokenInstance').value;
+
+        if (!id || !token) {
+            alert("Пожалуйста, укажите idInstance и ApiTokenInstance");
+            return null;
+        }
+        return `https://api.green-api.com/waInstance${id}`;
+    }
+
+    function displayResponse(data) {
+        document.getElementById('response-field').value = JSON.stringify(data, null, 4);
+    }
+
+    async function makeRequest(endpoint, method = 'GET', body = null) {
+        const baseUrl = getBaseUrl();
+        if (!baseUrl) return;
+
+        const token = document.getElementById('apiTokenInstance').value;
+        const url = `${baseUrl}/${endpoint}/${token}`;
+
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        };
+
+        if (body) {
+            options.body = JSON.stringify(body);
+        }
+
+        try {
+            const response = await fetch(url, options);
+            const data = await response.json();
+            displayResponse(data);
+        } catch (error) {
+            console.error('Error:', error);
+            displayResponse({ error: error.message });
+        }
+    }
+
+    function getSettings() {
+        makeRequest('getSettings');
+    }
+
+    function getStateInstance() {
+        makeRequest('getStateInstance');
+    }
+
+    function sendMessage() {
+        const chatId = document.getElementById('chatIdMessage').value;
+        const message = document.getElementById('message').value;
+
+        if (!chatId || !message) {
+            alert("Заполните chatId и сообщение");
+            return;
+        }
+
+        const formattedChatId = chatId.includes('@') ? chatId : `${chatId}@c.us`;
+
+        const body = {
+            chatId: formattedChatId,
+            message: message
+        };
+
+        makeRequest('sendMessage', 'POST', body);
+    }
+
+    function sendFileByUrl() {
+        const chatId = document.getElementById('chatIdFile').value;
+        const urlFile = document.getElementById('urlFile').value;
+
+        if (!chatId || !urlFile) {
+            alert("Заполните chatId и URL файла");
+            return;
+        }
+
+        const formattedChatId = chatId.includes('@') ? chatId : `${chatId}@c.us`;
+
+        const fileName = urlFile.substring(urlFile.lastIndexOf('/') + 1) || 'file';
+
+        const body = {
+            chatId: formattedChatId,
+            urlFile: urlFile,
+            fileName: fileName
+        };
+
+        makeRequest('sendFileByUrl', 'POST', body);
+    }
+</script>
+
+</body>
+</html>
